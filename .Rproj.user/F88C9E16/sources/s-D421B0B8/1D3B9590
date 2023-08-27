@@ -1,0 +1,28 @@
+{
+    "id": "1D3B9590",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1693160667948.0,
+    "source_on_save": false,
+    "relative_order": 7,
+    "properties": {
+        "id": "55de7864a730448ea7d240492785578b",
+        "name": "linear_model_inspection",
+        "title": "linear_model_inspection",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1693157194,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1693160667948,
+    "read_only": false,
+    "read_only_alternatives": []
+}

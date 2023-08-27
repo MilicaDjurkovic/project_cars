@@ -1,0 +1,4 @@
+"0","w_cookD <- identify_influential_cases(linear_model, threshold = 1)"
+"0","print(w_cookD)"
+"1","integer(0)
+"

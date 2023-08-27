@@ -1,0 +1,7 @@
+"0","# Correlation between distance and speed"
+"0","corr <- cor(cars_data$speed_kmh, cars_data$dist_m) "
+"0","print(corr)"
+"1","[1]"
+"1"," 0.8068949"
+"1","
+"

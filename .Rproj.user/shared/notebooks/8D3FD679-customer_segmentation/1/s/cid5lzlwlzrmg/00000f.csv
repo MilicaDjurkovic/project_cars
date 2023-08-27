@@ -1,0 +1,6 @@
+"0","# PLOT CUSTOMER BEHAVIOR"
+"0",""
+"0","plot_customer_behavior_by_cluster(top_n_products = 5, k = 4, seed=123, interactive = params$interactive)"
+"2","Error in plot_customer_behavior_by_cluster(top_n_products = 5, k = 4,  : 
+  could not find function ""plot_customer_behavior_by_cluster""
+"

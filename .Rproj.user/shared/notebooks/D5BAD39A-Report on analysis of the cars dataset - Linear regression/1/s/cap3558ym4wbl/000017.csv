@@ -1,0 +1,8 @@
+"0","# Predict with new data"
+"0","new_cars_speed = rnorm(100, mean = mean(cars_data$speed_kmh), "
+"0","                        sd = sd(cars_data$speed_kmh))"
+"0","predictions <- predict_new_data(linear_model, new_cars_speed)"
+"0","# Plot model predictions"
+"0","plot_model_predictions(predictions)"
+"1","[38;5;252m`geom_smooth()` using formula = 'y ~ x'[39m
+"

@@ -1,0 +1,4 @@
+"0","# PLOT CUSTOMER HEAT MAP"
+"0","plot_customer_heatmap(interactive = params$interactive)"
+"1","[38;5;252m`summarise()` has grouped output by 'bikeshop_name', 'category_1'. You can override using the `.groups` argument.[39m
+"

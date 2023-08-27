@@ -1,0 +1,172 @@
+# Load the required libraries
+library(tidyverse)
+library(dplyr)
+library(caret)
+library(rpart)
+library(corrplot)
+library(car)
+library(ggplot2)
+library(ggrepel)
+
+# Load the mtcars dataset
+
+data_dir <- paste0(getwd(), "/_data/")
+mtcars_data <- read.csv(paste0(data_dir, "mtcars.csv"),
+                        header = TRUE,
+                        check.names = FALSE,
+                        stringsAsFactors = FALSE)
+glimpse(mtcars_data)
+
+
+str(mtcars_data)
+mtcars_data <- mtcars_data %>%
+    select("mpg", "cyl", "disp", "hp", "drat", "wt", "qsec", "vs", "am", "gear", "carb")
+
+
+# Display basic statistics for numeric variables
+summary(mtcars_data)
+
+# Create histograms for numeric variables
+par(mfrow = c(4, 3))  # Arrange plots in a 4x3 grid
+for (col in colnames(mtcars_data)) {
+    hist(mtcars_data[[col]], main = col, xlab = "")
+}
+
+# Display the correlation matrix
+cor_matrix <- cor(mtcars_data)
+print(cor_matrix)
+corr <- round(cor_matrix,2)
+
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+correlation_matrix <- corrplot(corr, method="color", col=col(200),
+         type="upper", order="hclust",
+         addCoef.col = "black",
+         tl.col="black", tl.srt=45
+)
+
+
+# Create box plots for each variable against 'am'
+box_plots_for_variables <- lapply(names(mtcars), function(var_name) {
+    ggplot(mtcars, aes(x = factor(am), y = mtcars[[var_name]])) +
+        geom_boxplot() +
+        ggtitle(paste("Box Plot of", var_name, "vs. am")) +
+        xlab("am") +
+        ylab(var_name)
+})
+
+# Display the box plots
+gridExtra::grid.arrange(grobs = box_plots_for_variables, ncol = 3)  # Adjust ncol as needed
+
+
+# Create density plots for each variable against 'am'
+density_plots_for_variables <- lapply(names(mtcars), function(var_name) {
+    ggplot(mtcars, aes(x = mtcars[[var_name]], fill = factor(am))) +
+        geom_density(alpha = 0.5) +
+        ggtitle(paste("Density Plot of", var_name, "vs. am")) +
+        xlab(var_name) +
+        ylab("Density") +
+        scale_fill_discrete(name = "am", labels = c("Automatic", "Manual"))
+})
+
+
+# Display the density plots
+gridExtra::grid.arrange(grobs = density_plots_for_variables, ncol = 3)  # Adjust ncol as needed
+
+
+### --- Binomial Logistic Model
+binomial_linear_model <- glm(am ~ wt + hp,
+                             data = mtcars_data,
+                             family = "binomial")
+
+summary(binomial_linear_model)
+
+# VIF values
+vif_values <- vif(binomial_linear_model)
+print(vif_values)
+
+# - coefficients
+binomial_linear_model$coefficients
+coefficients(binomial_linear_model)
+
+# - important
+coefs <- exp(binomial_linear_model$coefficients)
+print(coefs)
+
+# - prediction
+predictions <- predict(binomial_linear_model,
+                       newdata = mtcars_data,
+                       type = "response")
+
+
+predictions <- as.numeric(predictions > .5)
+
+predictions <- data.frame(observation = mtcars_data$am,
+                          prediction = predictions)
+
+
+# - model accuracy
+accuracy <- as.numeric(predictions$observation == predictions$prediction)
+accuracy <- sum(accuracy)/length(accuracy)
+print(accuracy)
+
+# - model true positive rate (hit rate)
+hit = as.numeric(predictions$observation == 1 & predictions$prediction == 1)
+hit <- sum(hit)/sum(predictions$observation == 1)
+print(hit)
+
+# - model false positive rate (false alarm rate)
+fa = as.numeric(predictions$observation == 0 & predictions$prediction == 1)
+fa <- sum(fa)/sum(predictions$observation == 0)
+print(fa)
+
+# - decision criterion
+dec_criterion <- seq(.01, .99, by = .01)
+predictions <- predict(binomial_linear_model,
+                       newdata = mtcars_data,
+                       type = "response")
+
+predictions_frame <- lapply(dec_criterion, function(x) {
+    # - predictions
+    preds <- as.numeric(predictions > x)
+    preds <- data.frame(observation = mtcars_data$am,
+                        prediction = preds)
+    # - model accuracy
+    accuracy <- as.numeric(preds$observation == preds$prediction)
+    accuracy <- sum(accuracy)/length(accuracy)
+    # - model true positive rate (hit rate)
+    hit = as.numeric(preds$observation == 1 & preds$prediction == 1)
+    hit <- sum(hit)/sum(preds$observation == 1)
+    # - model false positive rate (false alarm rate)
+    fa = as.numeric(preds$observation == 0 & preds$prediction == 1)
+    fa <- sum(fa)/sum(preds$observation == 0)
+    return(
+        data.frame(hit, fa, accuracy, dec = x)
+    )
+})
+
+roc_frame <- Reduce(rbind, predictions_frame)
+
+# - ROC analysis
+roc_frame$diff <- roc_frame$hit - roc_frame$fa
+roc_frame$label <- ""
+roc_frame$label[which.max(roc_frame$diff)] <- "Here!"
+
+ggplot(data = roc_frame,
+       aes(x = fa,
+           y = hit,
+           label = label)) +
+    geom_path(color = "blue") +
+    geom_abline(intercept = 0, slope = 1) +
+    geom_text_repel(arrow = arrow(length = unit(0.06, "inches"),
+                                  ends = "last",
+                                  type = "closed"),
+                    min.segment.length = unit(0, 'lines'),
+                    nudge_y = .1) +
+    ggtitle("ROC analysis for the Binomial Regression Model") +
+    xlab("True Negative (False Alarm) Rate") + ylab("True Positive (Hit) Rate") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = .5)) +
+    theme(panel.border = element_blank())
+
+
+

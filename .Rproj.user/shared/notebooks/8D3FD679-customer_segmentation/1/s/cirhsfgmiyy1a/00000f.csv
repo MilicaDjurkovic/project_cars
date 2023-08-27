@@ -1,0 +1,4 @@
+"0","# PLOT CUSTOMER SEGMENTS"
+"0","plot_customer_segments(k = 4, seed = 123, interactive = params$interactive)"
+"1","[38;5;252m`summarise()` has grouped output by 'bikeshop_name', 'price', 'model', 'category_1', 'category_2'. You can override using the `.groups` argument.[39m
+"

@@ -1,0 +1,6 @@
+"0","# Load the mtcars dataset"
+"0","data_dir <- paste0(getwd(), ""/_data/"")"
+"0","cars_data <- read.csv(paste0(data_dir, ""cars.csv""),"
+"0","                        header = TRUE,"
+"0","                        check.names = FALSE,"
+"0","                        stringsAsFactors = FALSE)"

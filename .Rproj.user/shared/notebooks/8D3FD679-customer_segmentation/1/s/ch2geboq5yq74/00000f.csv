@@ -1,0 +1,5 @@
+"0","# PLOT CUSTOMER HEAT MAP"
+"0","plot_customer_heatmap(interactive = params$interactive)"
+"2","Error in plot_customer_heatmap(interactive = params$interactive) : 
+  could not find function ""plot_customer_heatmap""
+"

@@ -1,0 +1,4 @@
+"0","inf_frame <- influence.measures(linear_model)"
+"0","inf_frame <- as.data.frame(inf_frame$infmat)"
+"0",""
+"0","plot_influence_plot(linear_model, inf_frame)"

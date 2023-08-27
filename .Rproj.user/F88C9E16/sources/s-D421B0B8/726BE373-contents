@@ -1,0 +1,197 @@
+
+# Load the required libraries
+library(tidyverse)
+library(dplyr)
+library(caret)
+library(rpart)
+library(corrplot)
+library(car)
+library(ggplot2)
+library(ggrepel)
+library(ggfortify)
+
+# Load the mtcars dataset
+data_dir <- paste0(getwd(), "/_data/")
+cars_data <- read.csv(paste0(data_dir, "cars.csv"),
+                      header = TRUE,
+                      check.names = FALSE,
+                      stringsAsFactors = FALSE)
+
+glimpse(cars_data)  
+# convert miles per hour to kilometer per hour
+cars_data$speed_kmh <- cars_data$speed * 1.60934  
+
+# convert foot to meters
+cars_data$dist_m <- cars_data$dist * 0.3048 
+
+### --- Simple Linear Regression
+# - Target: predict dist_m from speed_kmh
+# - cars_data
+
+cars_data <- cars_data  %>%
+    select("speed_kmh", "dist_m")
+
+# Showing basic statistics for numeric variables
+summary(cars_data)
+
+
+# Correlation between distance and speed
+corr <- cor(cars_data$speed_kmh, cars_data$dist_m) 
+
+# Estimate linear model
+linear_model <- lm(data = cars_data,
+                   dist_m ~ speed_kmh)
+
+
+
+
+# - inspect model object: linear_model
+summary(linear_model)
+
+cars_data$predicted <- linear_model$fitted.values
+cars_data$residuals <- linear_model$residuals
+
+# - visualize relationship
+ggplot(data = cars_data,
+       aes(x = speed_kmh, y = dist_m)) +
+    geom_smooth(method = lm, se = FALSE, color = "red", size = .25) +
+    geom_segment(aes(x = speed_kmh, 
+                     y = predicted, 
+                     xend = speed_kmh, 
+                     yend = predicted + residuals),
+                 color = "black", size = .2, linetype = "dashed") +
+    geom_point(aes(x = speed_kmh, y = dist_m), color = "black", size = 1) +
+    geom_point(aes(x = speed_kmh, y = dist_m), color = "white", size = .5) +
+    geom_point(aes(x = speed_kmh, y = predicted), color = "red", size = 1) +
+    ggtitle("dist_m ~ speed_kmh") +
+    theme_bw() + 
+    theme(panel.border = element_blank()) +
+    theme(plot.title = element_text(hjust = .5))
+
+
+# - correlation and R2
+r <- cor.test(cars_data$speed_kmh, 
+              cars_data$dist_m)
+r
+print(r$estimate)
+print(r$estimate^2)
+
+
+### -- inspect model object: linear_model
+summary(linear_model)$coefficients
+confint(linear_model, level = 0.99)
+
+linear_model$residuals
+sse <- sum(linear_model$residuals^2)
+print(sse)
+
+linear_model$fitted.values
+
+### --- Predicting new data
+
+new_cars_speed = rnorm(100, mean = mean(cars_data$speed_kmh), 
+                       sd = sd(cars_data$speed_kmh))
+
+predictions <- data_frame(speed_kmh = new_cars_speed, 
+                          dist_m = predict(linear_model, newdata = data.frame(
+                              speed_kmh = new_cars_speed)))
+
+
+# - plot model predictions
+ggplot(data = predictions, 
+       aes(x = speed_kmh,
+           y = dist_m)) + 
+    geom_smooth(method = lm, se = F, size = .25, color = "red") +
+    geom_point(color = "black", size = 2) + 
+    geom_point(color = "white", size = 1.5) +
+    ggtitle("Predictions") + 
+    theme_bw() + 
+    theme(panel.border = element_blank()) + 
+    theme(plot.title = element_text(hjust = .5))
+
+
+### --- The distribution of residuals
+
+model_residuals <- data.frame(residuals = linear_model$residuals)
+ggplot(data = model_residuals,
+       aes(x = residuals)) + 
+    geom_histogram(binwidth = 10) + 
+    ggtitle("Model Residuals") +
+    theme_bw() + 
+    theme(panel.border = element_blank()) + 
+    theme(plot.title = element_text(hjust = .5))
+
+# - qqplot
+ggplot(model_residuals, aes(sample = residuals)) + 
+    stat_qq() + 
+    stat_qq_line() + 
+    ggtitle("Q-Q Plot of Model Residuals") +
+    xlab("Theoretical Quantiles") + ylab("Sample Quantiles") + 
+    theme_bw() + 
+    theme(panel.border = element_blank()) + 
+    theme(plot.title = element_text(hjust = .5))
+
+### --- Heteroskedacity
+# - Predicted vs. residuals {ggplot2}
+
+predictions <- linear_model$fitted.values
+residuals <- linear_model$residuals
+predicted_res_frame <- data.frame(predicted = predictions, 
+                                  residual = residuals)
+
+
+ggplot(data = predicted_res_frame,
+       aes(x = predicted, y = residual)) +
+    geom_point(size = 1.5) +
+    geom_smooth(method = 'lm',
+                size = .25,
+                alpha = .25, 
+                color = "red", 
+                se = FALSE) + 
+    ggtitle("Predicted vs Residual") + 
+    xlab("Predicted") + ylab("Residual") + 
+    theme_bw() +
+    theme(legend.position = "none") + 
+    theme(panel.border = element_blank()) + 
+    theme(plot.title = element_text(hjust = .5))
+
+### --- Influential Cases
+
+inf_frame <- influence.measures(linear_model)
+inf_frame <- as.data.frame(inf_frame$infmat)
+
+
+# - Cook's distance
+# - Cook and Weisberg (1982) 
+# - consider values greater than 1 to be problematic
+w_cookD <- which(inf_frame$cook.d >1)
+print(w_cookD)
+
+# - Leverage: hat values (inf_frame$hat values)
+# - Average Leverage = (k+1)/n
+# - k - num. of predictors
+# - n - num. observations
+# - Also termed: hat values, range: 0 - 1
+# - Various criteria (twice the average leverage, three times the average leverage...)
+k <- 1 # - number of predictors
+n <- dim(cars_data)[1] # - number of observations
+# - Various criteria, we will use > twice the leverage:
+w_leverage <- which(inf_frame$hat > 2*((k + 1)/n))
+print(w_leverage)
+
+## Influence plot
+inf_plot_frame <- data.frame(residual = linear_model$residuals,
+                             leverage = inf_frame$hat,
+                             cookD = inf_frame$cook.d)
+ggplot(inf_plot_frame,
+       aes(y = residual,
+           x = leverage)) +
+    geom_point(size = inf_plot_frame$cookD*100, 
+               shape = 1, 
+               color = "blue") +
+    ggtitle("Influence Plot\nSize of the blob corresponds to Cook's distance") +
+    theme(plot.title = element_text(size=8, face="bold")) +
+    ylab("Standardized Residual") + xlab("Leverage") + 
+    theme_bw() + 
+    theme(panel.border = element_blank()) + 
+    theme(plot.title = element_text(hjust = .5))
